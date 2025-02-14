@@ -1,0 +1,18 @@
+# Byte-compiled / virtual environment files
+__pycache__/
+*.py[cod]
+*.swp
+*.swo
+.env
+.venv
+venv/
+ 
+# Django-related
+db.sqlite3
+/media/
+staticfiles/
+ 
+# Logs and IDE files
+*.log
+.vscode/
+.idea/
