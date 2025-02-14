@@ -5,3 +5,5 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
+class ResumeParserSerializer(serializers.Serializer):
+    resume_text = serializers.CharField()
