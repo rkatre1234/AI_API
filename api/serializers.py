@@ -7,3 +7,4 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 class ResumeParserSerializer(serializers.Serializer):
     resume_text = serializers.CharField()
+  
