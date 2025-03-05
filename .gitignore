@@ -16,3 +16,4 @@ staticfiles/
 *.log
 .vscode/
 .idea/
+ec2-user-3.86.191.187/*
