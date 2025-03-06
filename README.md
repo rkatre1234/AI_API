@@ -45,7 +45,7 @@ Follow the prompts to set up an admin account.
 ```sh
 python manage.py runserver
 ```
-Access the project at `http://127.0.0.1:8000/`
+Access the project at `http://3.93.231.224:8000/`
 
 ## Running Tests
 ```sh
