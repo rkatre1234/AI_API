@@ -11,5 +11,6 @@ urlpatterns = [
     path('parse-resume/', ResumeParserView.as_view(), name='parse-resume'),
     path('test/', TestView.as_view(), name='test'),
     path('gemini/', GeminiView.as_view(), name='gemini-api'),  # New API
+    path('gemini-parse-resume/', GeminiView.as_view(), name='gemini-parse-resume'),
    
 ]
