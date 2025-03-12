@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from ..serializers import ResumeParserSerializer
+from rest_framework.parsers import MultiPartParser, FormParser
+from ..serializers import ResumeParserSerializer, FileUploadSerializer
 
 # Load environment variables
 load_dotenv()
@@ -16,6 +17,15 @@ HF_API_KEY = os.getenv("HF_API_KEY")
 # Configure Google Gemini AI client
 genai.configure(api_key=GEMINI_API_KEY)
 
+class FileUploadView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        file_serializer = FileUploadSerializer(data=request.data)
+        if file_serializer.is_valid():
+            file_serializer.save()
+            return Response(file_serializer.data, status=201)
+        return Response(file_serializer.errors, status=400)
 
 def check_huggingface_rate_limit(api_key):
     """
