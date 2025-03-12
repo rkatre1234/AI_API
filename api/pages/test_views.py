@@ -66,7 +66,9 @@ def pdf_to_text(pdf_path):
     return text
 def doc_to_text(docx_path):
     doc = Document(get_absolute_path(docx_path))
-    return "\n".join([para.text for para in doc.paragraphs])
+    text = "\n".join([para.text for para in doc.paragraphs])
+    print(text)
+    return text
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
