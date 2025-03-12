@@ -9,6 +9,8 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from ..serializers import ResumeParserSerializer, FileUploadSerializer
 from ..responses import ApiResponse
+
+import fitz
 # Load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -16,6 +18,12 @@ HF_API_KEY = os.getenv("HF_API_KEY")
 
 # Configure Google Gemini AI client
 genai.configure(api_key=GEMINI_API_KEY)
+
+def pdf_to_text(pdf_relative_path):
+    pdf_path =  "D:\\sites\\tiu\\ai_apis\\media\\uploads\\ATS__SureCafe_Plan.pdf"
+    doc = fitz.open(pdf_path)
+    text = "\n".join([page.get_text() for page in doc])
+    return text
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -25,7 +33,15 @@ class FileUploadView(APIView):
         if file_serializer.is_valid():
             file_serializer.save()
             user_data = {"file_link":file_serializer.data}
-            response = ApiResponse(message="file uploaded successfully", data=user_data)
+
+            if request.data.get('upload_type') == 'resume':
+                resume_text = pdf_to_text(file_serializer.data['file'])
+                resume_data = parse_resume_with_gemini(resume_text)
+                # resume_data ={"resume_text"}
+                response = ApiResponse(message="Resume data", data=resume_data)           
+            else:
+                response = ApiResponse(message="file uploaded successfully", data=user_data)           
+                
             return response.to_response()
             # return Response({"file_link":file_serializer.data, "status":"true" }, status=201)
         #return Response(file_serializer.errors, status=400)

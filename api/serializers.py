@@ -4,7 +4,8 @@ from .models import Product, UploadedFile
 class FileUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = UploadedFile
-        fields = ['file']
+        fields = '__all__'
+        
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
