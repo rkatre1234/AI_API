@@ -10,6 +10,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from ..serializers import ResumeParserSerializer, FileUploadSerializer
 from ..responses import ApiResponse
 from pathlib import Path
+from docx import Document
 
 import fitz
 # Load environment variables
@@ -48,11 +49,24 @@ def get_absolute_path(uploaded_relative_path):
     print(f"Resolved Absolute Path: {absolute_path}")
 
     return str(absolute_path)
+
+def check_file_type(file_path):
+    ext = Path(file_path).suffix.lower().strip()  # Normalize case & remove spaces
+    
+    if ext == ".pdf":
+        return ".pdf"
+    elif ext in (".doc", ".docx"):
+        return ".doc"
+    else:
+        return "Unknown file type"
+
 def pdf_to_text(pdf_path):
     doc = fitz.open(get_absolute_path(pdf_path))
     text = "\n".join(page.get_text() for page in doc)
     return text
-
+def doc_to_text(docx_path):
+    doc = Document(get_absolute_path(docx_path))
+    return "\n".join([para.text for para in doc.paragraphs])
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -64,10 +78,23 @@ class FileUploadView(APIView):
             user_data = {"file_link":file_serializer.data}
 
             if request.data.get('upload_type') == 'resume':
-                resume_text = pdf_to_text(file_serializer.data['file'])
-                resume_data = parse_resume_with_gemini(resume_text)
+                ext = check_file_type(file_serializer.data['file'])
+
+                if ext == ".pdf":
+                    resume_text = pdf_to_text(file_serializer.data['file'])
+                elif ext == ".doc" or ext == ".docx":
+                    resume_text = doc_to_text(file_serializer.data['file'])
+                else:
+                    resume_text = "File not supported"
+                
+                if resume_text == "File not supported":
+                    return ApiResponse.error(message="File not supported", errors="File not supported")
+                else:   
+                    resume_data = parse_resume_with_gemini(resume_text)
+                    response = ApiResponse(message="Resume data", data=resume_data) 
+                    return response.to_response()
                 # resume_data ={"resume_text"}
-                response = ApiResponse(message="Resume data", data=resume_data)           
+                          
             else:
                 response = ApiResponse(message="file uploaded successfully", data=user_data)           
                 
