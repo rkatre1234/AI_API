@@ -9,21 +9,50 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from ..serializers import ResumeParserSerializer, FileUploadSerializer
 from ..responses import ApiResponse
+from pathlib import Path
 
 import fitz
 # Load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HF_API_KEY = os.getenv("HF_API_KEY")
+# Get project root from .env or fallback to script's parent directory
+# Get project root from .env or fallback to script's parent directory
+PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", Path(__file__).resolve().parent.parent))
+
+
 
 # Configure Google Gemini AI client
 genai.configure(api_key=GEMINI_API_KEY)
 
-def pdf_to_text(pdf_relative_path):
-    pdf_path =  "D:\\sites\\tiu\\ai_apis\\media\\uploads\\ATS__SureCafe_Plan.pdf"
-    doc = fitz.open(pdf_path)
-    text = "\n".join([page.get_text() for page in doc])
+# def pdf_to_text(pdf_relative_path):
+#     pdf_path =  "D:\\sites\\tiu\\ai_apis\\media\\uploads\\ATS__SureCafe_Plan.pdf"
+#     doc = fitz.open(pdf_path)
+#     text = "\n".join([page.get_text() for page in doc])
+#     return text
+
+def get_absolute_path(uploaded_relative_path):
+    """
+    Converts a Linux-style uploaded path to a Windows-compatible absolute path.
+    Does NOT use .env.
+    """
+    # Get the project's root dynamically (assumes script is run from the project folder)
+    PROJECT_ROOT = Path.cwd()  # Uses current working directory
+
+    # Normalize the path for the current OS
+    absolute_path = (PROJECT_ROOT / Path(uploaded_relative_path.lstrip("/"))).resolve()
+
+    # Debugging: Print paths
+    print(f"PROJECT_ROOT: {PROJECT_ROOT}")
+    print(f"Original Uploaded Path: {uploaded_relative_path}")
+    print(f"Resolved Absolute Path: {absolute_path}")
+
+    return str(absolute_path)
+def pdf_to_text(pdf_path):
+    doc = fitz.open(get_absolute_path(pdf_path))
+    text = "\n".join(page.get_text() for page in doc)
     return text
+
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
