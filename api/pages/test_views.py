@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from ..serializers import ResumeParserSerializer, FileUploadSerializer
-
+from ..responses import ApiResponse
 # Load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -24,8 +24,13 @@ class FileUploadView(APIView):
         file_serializer = FileUploadSerializer(data=request.data)
         if file_serializer.is_valid():
             file_serializer.save()
-            return Response(file_serializer.data, status=201)
-        return Response(file_serializer.errors, status=400)
+            user_data = {"file_link":file_serializer.data}
+            response = ApiResponse(message="file uploaded successfully", data=user_data)
+            return response.to_response()
+            # return Response({"file_link":file_serializer.data, "status":"true" }, status=201)
+        #return Response(file_serializer.errors, status=400)
+        return ApiResponse.error(message="Failed to upload", errors=str(file_serializer.errors))
+        
 
 def check_huggingface_rate_limit(api_key):
     """
