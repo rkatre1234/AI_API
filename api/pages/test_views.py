@@ -138,63 +138,63 @@ def parse_resume_with_gemini(resume_text):
     #     "Do NOT include extra text or explanations, ONLY return a valid JSON object."
     # ]
 
-    messages = [f"""
-    You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
+    messages = f"""
+You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
 
-    The resume text:
-    {resume_text}
+The resume text:
+{resume_text}
 
-    Extract and include the following:
+Extract and include the following:
 
-        * Full Name: First Name, Last Name
-        * Contact Number
-        * Email Address
-        * Location
-        * Languages:
-            * Language: Language name
-            * Proficiency: Proficiency level (e.g., Native, Fluent, Intermediate, Beginner)
-        * Summary: Professional Summary (or) Objective
-        * Skills: 
-            * Technical 
-            * Non-Technical
-        * Education: 
-            * Institution: Name of institution
-            * Course: Course
-            * GPA: GPA (if available)
-            * Location: Location
-            * Year: Year
-        * Work Experience:
-            * Job Title: job title
-            * Company: name of the company
-            * Location: location
-            * Dates of Employment: dates of employment
-            * Responsibilities: key responsibilities and achievements
-        * Certifications:
-            * Name: Name of the certification
-            * Issuing Organization: Issuing organization
-            * Date: date
-        * Projects: 
-            * Title: Title of the project
-            * Description: Brief description
+    * Full Name: First Name, Last Name
+    * Contact Number
+    * Email Address
+    * Location
+    * Languages:
+        * Language: Language name
+        * Proficiency: Proficiency level (e.g., Native, Fluent, Intermediate, Beginner)
+    * Summary: Professional Summary (or) Objective
+    * Skills: 
+        * Technical 
+        * Non-Technical
+    * Education: 
+        * Institution: Name of institution
+        * Course: Course
+        * GPA: GPA (if available)
+        * Location: Location
+        * Year: Year
+    * Work Experience:
+        * Job Title: job title
+        * Company: name of the company
+        * Location: location
+        * Dates of Employment: dates of employment
+        * Responsibilities: key responsibilities and achievements
+    * Certifications:
+        * Name: Name of the certification
+        * Issuing Organization: Issuing organization
+        * Date: date
+    * Projects: 
+        * Title: Title of the project
+        * Description: Brief description
 
-    * **Suggested Resume Category** (Based on skills and experience)
-    * **Recommended Job Roles** (Based on the candidate's skills and experience)
+* **Suggested Resume Category** (Based on skills and experience)
+* **Recommended Job Roles** (Based on the candidate's skills and experience)
 
-        If any detail is missing, mark it as "N/A."
+    If any detail is missing, mark it as "N/A."
 
-    Return the response in Structured clean JSON format and make sure it is free of any comments or unnecessary non-json characters.
-    """
-    ]
+Return the response in Structured clean JSON format and make sure it is free of any comments or unnecessary non-json characters.
+"""
 
 
     try:
         model = genai.GenerativeModel("gemini-1.5-pro")
-        response = model.generate_content(messages, generation_config={"max_output_tokens": 1000})
+        response = model.generate_content(messages)
 
         raw_response = response.text.strip()
 
         # Attempt to parse JSON response
         parsed_resume = json.loads(raw_response)
+        parsed_resume = json.dumps(parsed_resume, indent=4)
 
     except json.JSONDecodeError:
         raw_response = raw_response.strip("```json").strip("```")
