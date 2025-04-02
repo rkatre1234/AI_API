@@ -11,26 +11,20 @@ from ..serializers import ResumeParserSerializer, FileUploadSerializer
 from ..responses import ApiResponse
 from pathlib import Path
 from docx import Document
-
+import boto3
 import fitz
+import gdown
+
 # Load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HF_API_KEY = os.getenv("HF_API_KEY")
 # Get project root from .env or fallback to script's parent directory
-# Get project root from .env or fallback to script's parent directory
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", Path(__file__).resolve().parent.parent))
-
 
 
 # Configure Google Gemini AI client
 genai.configure(api_key=GEMINI_API_KEY)
-
-# def pdf_to_text(pdf_relative_path):
-#     pdf_path =  "D:\\sites\\tiu\\ai_apis\\media\\uploads\\ATS__SureCafe_Plan.pdf"
-#     doc = fitz.open(pdf_path)
-#     text = "\n".join([page.get_text() for page in doc])
-#     return text
 
 def get_absolute_path(uploaded_relative_path):
     """
@@ -131,13 +125,6 @@ def parse_resume_with_gemini(resume_text):
     """
     Uses Google Gemini Pro to parse resume text and return structured data.
     """
-    # messages = [
-    #     "You are a professional resume parser. Extract structured data in valid JSON format only.",
-    #     f"Extract structured details from this resume:\n\n{resume_text}\n\n"
-    #     "Return a valid JSON object with fields: name, contact, summary, experience, education, skills, certifications, projects, awards. "
-    #     "Do NOT include extra text or explanations, ONLY return a valid JSON object."
-    # ]
-
     messages = f"""
 You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
 
@@ -271,3 +258,76 @@ class GeminiView(APIView):
             {"error": "Invalid data", "details": serializer.errors},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class GoogleDriveToS3View(APIView):
+    """
+    API to download a video from a public Google Drive link and upload it to an S3 bucket.
+    """
+    def post(self, request):
+        try:
+            # Extract Google Drive file link from the payload
+            google_drive_file_link = request.data.get("google_drive_file_link")
+            if not google_drive_file_link:
+                return Response({"error": "Google Drive file link is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate the Google Drive link
+            if "drive.google.com" not in google_drive_file_link:
+                return Response({"error": "Invalid Google Drive link"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Convert the public Google Drive link to a direct download link
+            file_id = google_drive_file_link.split("/d/")[1].split("/")[0]
+            download_url = f"https://drive.google.com/uc?id={file_id}"
+            print(f"Download URL: {download_url}")  # Debugging
+
+            # Use a valid directory for temporary file storage
+            temp_dir = os.getenv("TEMP_DIR", ".")  # Default to current directory if TEMP_DIR is not set
+            local_file_path = os.path.join(temp_dir, f"{file_id}.mp4")
+            print(f"Temporary file path: {local_file_path}")  # Debugging
+
+            # Download the file using gdown
+            gdown.download(download_url, local_file_path, quiet=False)
+
+            # Upload the file to S3 with progress tracking
+            aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
+            aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+            bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
+            region_name = os.getenv("AWS_REGION", "us-east-1")
+            s3_key = f"videos/{file_id}.mp4"
+
+            def upload_progress(bytes_transferred):
+                print(f"Upload progress: {bytes_transferred} bytes transferred")  # Progress tracking
+
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_key,
+                region_name=region_name,
+            )
+            s3_client.upload_file(
+                local_file_path, bucket_name, s3_key,
+                Callback=lambda bytes_transferred: upload_progress(bytes_transferred)
+            )
+            print(f"File uploaded to S3: {s3_key}")  # Debugging
+
+            # Delete the local file after successful upload
+            if os.path.exists(local_file_path):
+                os.remove(local_file_path)
+                print(f"Temporary file deleted: {local_file_path}")  # Debugging
+
+            # Generate the S3 URL
+            s3_url = f"https://{bucket_name}.s3.{region_name}.amazonaws.com/{s3_key}"
+            print(f"S3 URL: {s3_url}")  # Debugging
+
+            # Return success response
+            return Response({
+                "message": "File successfully transferred from Google Drive to S3",
+                "s3_url": s3_url
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            print(f"Error: {str(e)}")  # Debugging
+            return Response({
+                "error": "Failed to transfer file",
+                "details": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
