@@ -154,7 +154,9 @@ Extract and include the following:
         * Job Title: job title
         * Company: name of the company
         * Location: location
-        * Dates of Employment: dates of employment
+        * Dates of Employment: 
+		* Sart date (dd/mm/yyyy)
+		* end date (dd/mm/yyyy)
         * Responsibilities: key responsibilities and achievements
     * Certifications:
         * Name: Name of the certification
