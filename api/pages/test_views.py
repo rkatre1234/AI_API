@@ -262,50 +262,61 @@ class GeminiView(APIView):
         )
 
 
+
+
 class GoogleDriveToS3View(APIView):
     """
-    API to download files (video and image) from Google Drive links and upload them to an S3 bucket.
+    API to download files (video and image) from Google Drive or direct links and upload them to an S3 bucket.
     """
     def post(self, request):
         try:
-            # Extract Google Drive file links and names from the payload
+            # Extract file keys (URLs) and names from the payload
             video_key = request.data.get("video_key")
             video_name = request.data.get("video_name")
             image_key = request.data.get("image_key")
             image_name = request.data.get("image_name")
 
-            # Debugging: Log the received payload
             print(f"Received payload: {request.data}")  # Debugging
 
             if not video_key or not video_name or not image_key or not image_name:
                 return Response({"error": "All file keys and names are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Helper function to download a file from Google Drive and upload it to S3
             def process_file(file_key, file_name):
                 try:
-                    # Convert the public Google Drive link to a direct download link
-                    file_id = file_key.split("/d/")[1].split("/")[0]
-                    download_url = f"https://drive.google.com/uc?id={file_id}"
-                    print(f"Download URL: {download_url}")  # Debugging
+                    # Decide if it's a Google Drive link or a direct URL
+                    if "drive.google.com" in file_key:
+                        # Extract file ID and convert to direct link
+                        file_id = file_key.split("/d/")[1].split("/")[0]
+                        download_url = f"https://drive.google.com/uc?id={file_id}"
+                        is_google_drive = True
+                    else:
+                        download_url = file_key
+                        is_google_drive = False
 
-                    # Use the uploads directory for file storage
                     uploads_dir = os.path.join(PROJECT_ROOT, "uploads")
-                    os.makedirs(uploads_dir, exist_ok=True)  # Ensure the directory exists
+                    os.makedirs(uploads_dir, exist_ok=True)
                     local_file_path = os.path.join(uploads_dir, file_name)
-                    print(f"Uploads file path: {local_file_path}")  # Debugging
+                    print(f"Download URL: {download_url}")
+                    print(f"Local file path: {local_file_path}")
 
-                    # Download the file using gdown
-                    gdown.download(download_url, local_file_path, quiet=False)
+                    if is_google_drive:
+                        gdown.download(download_url, local_file_path, quiet=False)
+                    else:
+                        response = requests.get(download_url, stream=True)
+                        response.raise_for_status()
+                        with open(local_file_path, 'wb') as f:
+                            for chunk in response.iter_content(chunk_size=8192):
+                                f.write(chunk)
 
-                    # Upload the file to S3 with progress tracking
+                    # Upload to S3
                     aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
                     aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
                     bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
                     region_name = os.getenv("AWS_REGION", "us-east-1")
-                    s3_key = f"uploads/{file_name}"  # Prepend /uploads to the S3 key
+                    s3_key = f"uploads/{file_name}"
 
                     def upload_progress(bytes_transferred):
-                        print(f"Upload progress: {bytes_transferred} bytes transferred")  # Progress tracking
+                        print(f"Upload progress: {bytes_transferred} bytes transferred")
 
                     s3_client = boto3.client(
                         "s3",
@@ -317,50 +328,33 @@ class GoogleDriveToS3View(APIView):
                         local_file_path, bucket_name, s3_key,
                         Callback=lambda bytes_transferred: upload_progress(bytes_transferred)
                     )
-                    print(f"File uploaded to S3: {s3_key}")  # Debugging
+                    print(f"File uploaded to S3: {s3_key}")
 
-                    # Delete the local file after successful upload
+                    # Clean up
                     if os.path.exists(local_file_path):
                         os.remove(local_file_path)
-                        print(f"Uploads file deleted: {local_file_path}")  # Debugging
+                        print(f"Deleted local file: {local_file_path}")
 
-                    # Generate the S3 URL
-                    s3_url = f"https://{bucket_name}.s3.{region_name}.amazonaws.com/{s3_key}"
-                    print(f"S3 URL: {s3_url}")  # Debugging
-
-                    return s3_url
-
-                except PermissionError as e:
-                    print(f"Permission error: {str(e)}")  # Debugging
-                    raise PermissionError(f"Permission denied for file: {file_name}")
+                    return f"https://{bucket_name}.s3.{region_name}.amazonaws.com/{s3_key}"
 
                 except Exception as e:
-                    print(f"Error processing file {file_name}: {str(e)}")  # Debugging
+                    print(f"Error processing file {file_name}: {str(e)}")
                     raise
 
-            # Process video and image files
             video_s3_url = process_file(video_key, video_name)
             image_s3_url = process_file(image_key, image_name)
 
-            # Return success response with additional fields
             return Response({
                 "message": "Files successfully uploaded to S3",
                 "video_s3_url": video_s3_url,
                 "image_s3_url": image_s3_url,
-                "file_key": f"{video_name}",
-                "reference_image": f"{image_name}"
+                "file_key": video_name,
+                "reference_image": image_name
             }, status=status.HTTP_200_OK)
 
         except PermissionError as e:
-            print(f"Permission error: {str(e)}")  # Debugging
-            return Response({
-                "error": "Permission error",
-                "details": str(e)
-            }, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Permission error", "details": str(e)}, status=status.HTTP_403_FORBIDDEN)
 
         except Exception as e:
-            print(f"Error: {str(e)}")  # Debugging
-            return Response({
-                "error": "Failed to upload files",
-                "details": str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": "Failed to upload files", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
