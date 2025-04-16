@@ -159,7 +159,7 @@ Extract and include the following:
             * Sart date (dd/mm/yyyy)
             * end date (dd/mm/yyyy)
         * Responsibilities: key responsibilities and achievements
-        * Job Description
+        * Description (all description should be there in bullet points)
         * Projects Undertaken
         * Technologies Used
 
