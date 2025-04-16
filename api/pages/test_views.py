@@ -156,8 +156,8 @@ Extract and include the following:
         * Company: name of the company
         * Location: location
         * Dates of Employment: 
-            * Sart date (dd/mm/yyyy)
-            * end date (dd/mm/yyyy)
+            * Start Date (dd/mm/yyyy)
+            * End Date (dd/mm/yyyy)
         * Responsibilities: key responsibilities and achievements
         * Description (all description should be there in bullet points)
         * Projects Undertaken
@@ -187,12 +187,12 @@ Extract and include the following:
         * contract + FTE
         * Part Time 
     * Personal Details:
-        * inkedIn Profile URL
+        * LinkedIn Profile URL
         * GitHub Profile URL
         * Portfolio URL 
         * Website URL
         * Other URLs
-        * twitter URL
+        * Twitter URL
         * Facebook URL
         * Instagram URL
         * DOB (Date of Birth)
