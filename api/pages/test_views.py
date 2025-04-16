@@ -150,6 +150,7 @@ Extract and include the following:
         * GPA: GPA (if available)
         * Location: Location
         * Year: Year
+        * Major/Field of Study: Major or field of study
     * Work Experience:
         * Job Title: job title
         * Company: name of the company
@@ -158,6 +159,10 @@ Extract and include the following:
             * Sart date (dd/mm/yyyy)
             * end date (dd/mm/yyyy)
         * Responsibilities: key responsibilities and achievements
+        * Job Description
+        * Projects Undertaken
+        * Technologies Used
+
     * Certifications:
         * Name: Name of the certification
         * Issuing Organization: Issuing organization
@@ -165,6 +170,44 @@ Extract and include the following:
     * Projects: 
         * Title: Title of the project
         * Description: Brief description
+        * Technologies Used: Technologies used in the project
+        * Role: Role in the project
+        * Duration: Duration of the project
+        * Responsibilities: Responsibilities in the project
+    * Total Experience (In Years)
+    * Expected Rate/Salary :
+        * yearly
+        * monthly
+        * daily
+        * hourly
+    * Available to join/last working day (in number of days)
+    * Available For:
+        * Contract        
+        * FTE (Full Time Equivalent)
+        * contract + FTE
+        * Part Time 
+    * Personal Details:
+        * inkedIn Profile URL
+        * GitHub Profile URL
+        * Portfolio URL 
+        * Website URL
+        * Other URLs
+        * twitter URL
+        * Facebook URL
+        * Instagram URL
+        * DOB (Date of Birth)
+        * Gender
+        * Pin Code / Zip Code
+        * Address
+        * City
+        * State
+        * Country
+    * Professional Summary
+    * Current Designation    
+
+    * References:
+        * Reference Name: Name of the reference
+        * Contact Information: Contact details of the reference        
 
 * **Suggested Resume Category** (Based on skills and experience)
 * **Recommended Job Roles** (Based on the candidate's skills and experience)
