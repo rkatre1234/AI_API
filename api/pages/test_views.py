@@ -136,8 +136,15 @@ Extract and include the following:
     * Full Name: First Name, Last Name
     * Contact Number
     * Email Address
-    * Location
-    * Languages:
+    * Preferred Job Location: 
+        * City
+        * State
+        * Country
+        * Zip Code
+        * Phone Number
+        * Address
+    * Nationality: Nationality
+    * Languages: 
         * Language: Language name
         * Proficiency: Proficiency level (e.g., Native, Fluent, Intermediate, Beginner)
     * Summary: Professional Summary (or) Objective
@@ -186,7 +193,7 @@ Extract and include the following:
         * FTE (Full Time Equivalent)
         * contract + FTE
         * Part Time 
-    * Personal Details:
+    * Candidate Personal Details:
         * LinkedIn Profile URL
         * GitHub Profile URL
         * Portfolio URL 
@@ -212,7 +219,7 @@ Extract and include the following:
 * **Suggested Resume Category** (Based on skills and experience)
 * **Recommended Job Roles** (Based on the candidate's skills and experience)
 
-    If any detail is missing, mark it as "null." and if any detail is not available in the resume, then  include key in the response.
+    If any detail is missing, mark it as "null." include null key in the response those I mention in prompt.
 
 Return the response in Structured clean JSON format and make sure it is free of any comments or unnecessary non-json characters.
 """
