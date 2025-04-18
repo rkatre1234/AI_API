@@ -212,7 +212,7 @@ Extract and include the following:
 * **Suggested Resume Category** (Based on skills and experience)
 * **Recommended Job Roles** (Based on the candidate's skills and experience)
 
-    If any detail is missing, mark it as "N/A."
+    If any detail is missing, mark it as "null." and if any detail is not available in the resume, then  include key in the response.
 
 Return the response in Structured clean JSON format and make sure it is free of any comments or unnecessary non-json characters.
 """
