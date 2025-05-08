@@ -137,7 +137,10 @@ def parse_resume_with_gemini(resume_text):
             "FirstName": "null",
             "LastName": "null"
         },
-        "ContactNumber": "null",
+        "ContactNumber": {
+            "countryCode": "null",
+            "number": "null"
+        },
         "EmailAddress": "null",
         "PreferredJobLocation": {
             "City": "null",
