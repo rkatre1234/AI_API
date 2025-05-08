@@ -144,7 +144,11 @@ def parse_resume_with_gemini(resume_text):
             "State": "null",
             "Country": "null",
             "ZipCode": "null",
-            "PhoneNumber": "null",
+            "PhoneNumber": {
+                "CountryCode": "null",
+                "Number": "null"
+            },
+          
             "Address": "null"
         },
         "Nationality": "null",
@@ -172,7 +176,7 @@ def parse_resume_with_gemini(resume_text):
         "WorkExperience": [
             {
                 "JobTitle": "null",
-                "Company": "null",
+                "Company": "NULL",
                 "Location": "null",
                 "DatesOfEmployment": {
                     "StartDate": "dd/mm/yyyy",
