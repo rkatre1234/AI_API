@@ -132,105 +132,129 @@ def parse_resume_with_gemini(resume_text):
             "message": "The resume text is empty. Please provide resume content to parse."
         }
 
+    json_template = '''{
+        "FullName": {
+            "FirstName": "null",
+            "LastName": "null"
+        },
+        "ContactNumber": "null",
+        "EmailAddress": "null",
+        "PreferredJobLocation": {
+            "City": "null",
+            "State": "null",
+            "Country": "null",
+            "ZipCode": "null",
+            "PhoneNumber": "null",
+            "Address": "null"
+        },
+        "Nationality": "null",
+        "Languages": [
+            {
+                "Language": "null",
+                "Proficiency": "null"
+            }
+        ],
+        "Summary": "null",
+        "Skills": {
+            "Technical": [],
+            "NonTechnical": []
+        },
+        "Education": [
+            {
+                "Institution": "null",
+                "Course": "null",
+                "GPA": "null",
+                "Location": "null",
+                "Year": "null",
+                "Major": "null"
+            }
+        ],
+        "WorkExperience": [
+            {
+                "JobTitle": "null",
+                "Company": "null",
+                "Location": "null",
+                "DatesOfEmployment": {
+                    "StartDate": "dd/mm/yyyy",
+                    "EndDate": "dd/mm/yyyy"
+                },
+                "Responsibilities": [],
+                "Description": [],
+                "ProjectsUndertaken": [],
+                "TechnologiesUsed": []
+            }
+        ],
+        "Certifications": [
+            {
+                "Name": "null",
+                "IssuingOrganization": "null",
+                "Date": "dd/mm/yyyy"
+            }
+        ],
+        "Projects": [
+            {
+                "Title": "null",
+                "Description": "null",
+                "TechnologiesUsed": [],
+                "Role": "null",
+                "Duration": "null",
+                "Responsibilities": []
+            }
+        ],
+        "TotalExperienceInYears": "null",
+        "ExpectedRateOrSalary": {
+            "Yearly": "null",
+            "Monthly": "null",
+            "Daily": "null",
+            "Hourly": "null"
+        },
+        "AvailableToJoinOrLastWorkingDay": "dd/mm/yyyy",
+        "AvailableFor": {
+            "Contract": "null",
+            "FTE": "null",
+            "ContractPlusFTE": "null",
+            "PartTime": "null"
+        },
+        "CandidatePersonalDetails": {
+            "LinkedInProfileURL": "null",
+            "GitHubProfileURL": "null",
+            "PortfolioURL": "null",
+            "WebsiteURL": "null",
+            "OtherURLs": "null",
+            "TwitterURL": "null",
+            "FacebookURL": "null",
+            "InstagramURL": "null",
+            "DOB": "dd/mm/yyyy",
+            "Gender": "null",
+            "PinCodeOrZipCode": "null",
+            "Address": "null",
+            "City": "null",
+            "State": "null",
+            "Country": "null"
+        },
+        "ProfessionalSummary": "null",
+        "CurrentDesignation": "null",
+        "References": [
+            {
+                "ReferenceName": "null",
+                "ContactInformation": "null"
+            }
+        ],
+        "SuggestedResumeCategory": "null",
+        "RecommendedJobRoles": []
+    }'''
+
     messages = f"""
-You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
+        You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format. 
+        For all dates, use the format dd/mm/yyyy (e.g., 25/12/2023).
 
-The resume text:
-{resume_text}
+        The resume text:
+        {resume_text}
 
-Extract and include the following:
+        Extract and include the following (if data is missing, mark it as "null"):
 
-    * Full Name: First Name, Last Name
-    * Contact Number
-    * Email Address
-    * Preferred Job Location: 
-        * City
-        * State
-        * Country
-        * Zip Code
-        * Phone Number
-        * Address
-    * Nationality: Nationality
-    * Languages: 
-        * Language: Language name
-        * Proficiency: Proficiency level (e.g., Native, Fluent, Intermediate, Beginner)
-    * Summary: Professional Summary (or) Objective
-    * Skills: 
-        * Technical 
-        * Non-Technical
-    * Education: 
-        * Institution: Name of institution
-        * Course: Course
-        * GPA: GPA (if available)
-        * Location: Location
-        * Year: Year
-        * Major/Field of Study: Major or field of study
-    * Work Experience:
-        * Job Title: job title
-        * Company: name of the company
-        * Location: location
-        * Dates of Employment: 
-            * Start Date (dd/mm/yyyy)
-            * End Date (dd/mm/yyyy)
-        * Responsibilities: key responsibilities and achievements
-        * Description (all description should be there in bullet points)
-        * Projects Undertaken
-        * Technologies Used
-
-    * Certifications:
-        * Name: Name of the certification
-        * Issuing Organization: Issuing organization
-        * Date: date
-    * Projects: 
-        * Title: Title of the project
-        * Description: Brief description
-        * Technologies Used: Technologies used in the project
-        * Role: Role in the project
-        * Duration: Duration of the project
-        * Responsibilities: Responsibilities in the project
-    * Total Experience (In Years)
-    * Expected Rate/Salary :
-        * yearly
-        * monthly
-        * daily
-        * hourly
-    * Available to join/last working day (in number of days)
-    * Available For:
-        * Contract        
-        * FTE (Full Time Equivalent)
-        * contract + FTE
-        * Part Time 
-    * Candidate Personal Details:
-        * LinkedIn Profile URL
-        * GitHub Profile URL
-        * Portfolio URL 
-        * Website URL
-        * Other URLs
-        * Twitter URL
-        * Facebook URL
-        * Instagram URL
-        * DOB (Date of Birth)
-        * Gender
-        * Pin Code / Zip Code
-        * Address
-        * City
-        * State
-        * Country
-    * Professional Summary
-    * Current Designation    
-
-    * References:
-        * Reference Name: Name of the reference
-        * Contact Information: Contact details of the reference        
-
-* **Suggested Resume Category** (Based on skills and experience)
-* **Recommended Job Roles** (Based on the candidate's skills and experience)
-
-    If any detail is missing, mark it as "null." include null key in the response those I mention in prompt.
-
-Return the response in Structured clean JSON format and make sure it is free of any comments or unnecessary non-json characters.
-"""
-
+        {json_template}
+        """
 
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
