@@ -233,7 +233,7 @@ Return the response in Structured clean JSON format and make sure it is free of 
 
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(messages)
 
         raw_response = response.text.strip()
