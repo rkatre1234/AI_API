@@ -125,6 +125,13 @@ def parse_resume_with_gemini(resume_text):
     """
     Uses Google Gemini Pro to parse resume text and return structured data.
     """
+    # Check for blank or empty resume text
+    if not resume_text or resume_text.strip() == "":
+        return {
+            "error": "Empty resume",
+            "message": "The resume text is empty. Please provide resume content to parse."
+        }
+
     messages = f"""
 You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
 
