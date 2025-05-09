@@ -133,123 +133,122 @@ def parse_resume_with_gemini(resume_text):
         }
 
     json_template = '''{
-        "FullName": {
-            "FirstName": "null",
-            "LastName": "null"
+    "FullName": {
+        "FirstName": "",
+        "LastName": ""
+    },
+    "ContactNumber": {
+        "countryCode": "",
+        "number": ""
+    },
+    "EmailAddress": "",
+    "PreferredJobLocation": {
+        "City": "",
+        "State": "",
+        "Country": "",
+        "ZipCode": "",
+        "PhoneNumber": {
+            "CountryCode": "",
+            "Number": ""
         },
-        "ContactNumber": {
-            "countryCode": "null",
-            "number": "null"
-        },
-        "EmailAddress": "null",
-        "PreferredJobLocation": {
-            "City": "null",
-            "State": "null",
-            "Country": "null",
-            "ZipCode": "null",
-            "PhoneNumber": {
-                "CountryCode": "null",
-                "Number": "null"
+        "Address": ""
+    },
+    "Nationality": "",
+    "Languages": [
+        {
+            "Language": "",
+            "Proficiency": ""
+        }
+    ],
+    "Summary": "",
+    "Skills": {
+        "Technical": [],
+        "NonTechnical": []
+    },
+    "Education": [
+        {
+            "Institution": "",
+            "Course": "",
+            "GPA": "",
+            "Location": "",
+            "Year": "",
+            "Major": ""
+        }
+    ],
+    "WorkExperience": [
+        {
+            "JobTitle": "",
+            "Company": "",
+            "Location": "",
+            "DatesOfEmployment": {
+                "StartDate": "dd/mm/yyyy",
+                "EndDate": "dd/mm/yyyy"
             },
-          
-            "Address": "null"
-        },
-        "Nationality": "null",
-        "Languages": [
-            {
-                "Language": "null",
-                "Proficiency": "null"
-            }
-        ],
-        "Summary": "null",
-        "Skills": {
-            "Technical": [],
-            "NonTechnical": []
-        },
-        "Education": [
-            {
-                "Institution": "null",
-                "Course": "null",
-                "GPA": "null",
-                "Location": "null",
-                "Year": "null",
-                "Major": "null"
-            }
-        ],
-        "WorkExperience": [
-            {
-                "JobTitle": "null",
-                "Company": "NULL",
-                "Location": "null",
-                "DatesOfEmployment": {
-                    "StartDate": "dd/mm/yyyy",
-                    "EndDate": "dd/mm/yyyy"
-                },
-                "Responsibilities": [],
-                "Description": [],
-                "ProjectsUndertaken": [],
-                "TechnologiesUsed": []
-            }
-        ],
-        "Certifications": [
-            {
-                "Name": "null",
-                "IssuingOrganization": "null",
-                "Date": "dd/mm/yyyy"
-            }
-        ],
-        "Projects": [
-            {
-                "Title": "null",
-                "Description": "null",
-                "TechnologiesUsed": [],
-                "Role": "null",
-                "Duration": "null",
-                "Responsibilities": []
-            }
-        ],
-        "TotalExperienceInYears": "null",
-        "ExpectedRateOrSalary": {
-            "Yearly": "null",
-            "Monthly": "null",
-            "Daily": "null",
-            "Hourly": "null"
-        },
-        "AvailableToJoinOrLastWorkingDay": "dd/mm/yyyy",
-        "AvailableFor": {
-            "Contract": "null",
-            "FTE": "null",
-            "ContractPlusFTE": "null",
-            "PartTime": "null"
-        },
-        "CandidatePersonalDetails": {
-            "LinkedInProfileURL": "null",
-            "GitHubProfileURL": "null",
-            "PortfolioURL": "null",
-            "WebsiteURL": "null",
-            "OtherURLs": "null",
-            "TwitterURL": "null",
-            "FacebookURL": "null",
-            "InstagramURL": "null",
-            "DOB": "dd/mm/yyyy",
-            "Gender": "null",
-            "PinCodeOrZipCode": "null",
-            "Address": "null",
-            "City": "null",
-            "State": "null",
-            "Country": "null"
-        },
-        "ProfessionalSummary": "null",
-        "CurrentDesignation": "null",
-        "References": [
-            {
-                "ReferenceName": "null",
-                "ContactInformation": "null"
-            }
-        ],
-        "SuggestedResumeCategory": "null",
-        "RecommendedJobRoles": []
-    }'''
+            "Responsibilities": [],
+            "Description": [],
+            "ProjectsUndertaken": [],
+            "TechnologiesUsed": []
+        }
+    ],
+    "Certifications": [
+        {
+            "Name": "",
+            "IssuingOrganization": "",
+            "Date": "dd/mm/yyyy"
+        }
+    ],
+    "Projects": [
+        {
+            "Title": "",
+            "Description": "",
+            "TechnologiesUsed": [],
+            "Role": "",
+            "Duration": "",
+            "Responsibilities": []
+        }
+    ],
+    "TotalExperienceInYears": "",
+    "ExpectedRateOrSalary": {
+        "Yearly": "",
+        "Monthly": "",
+        "Daily": "",
+        "Hourly": ""
+    },
+    "AvailableToJoinOrLastWorkingDay": "dd/mm/yyyy",
+    "AvailableFor": {
+        "Contract": "",
+        "FTE": "",
+        "ContractPlusFTE": "",
+        "PartTime": ""
+    },
+    "CandidatePersonalDetails": {
+        "LinkedInProfileURL": "",
+        "GitHubProfileURL": "",
+        "PortfolioURL": "",
+        "WebsiteURL": "",
+        "OtherURLs": "",
+        "TwitterURL": "",
+        "FacebookURL": "",
+        "InstagramURL": "",
+        "DOB": "dd/mm/yyyy",
+        "Gender": "",
+        "PinCodeOrZipCode": "",
+        "Address": "",
+        "City": "",
+        "State": "",
+        "Country": ""
+    },
+    "ProfessionalSummary": "",
+    "CurrentDesignation": "",
+    "References": [
+        {
+            "ReferenceName": "",
+            "ContactInformation": ""
+        }
+    ],
+    "SuggestedResumeCategory": "",
+    "RecommendedJobRoles": []
+}'''
 
     messages = f"""
         You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format. 
