@@ -257,7 +257,7 @@ def parse_resume_with_gemini(resume_text):
         The resume text:
         {resume_text}
 
-        Extract and include the following (if data is missing, mark it as "null"):
+        Extract and include the following (if data is missing, mark it as " "):
 
         {json_template}
         """
