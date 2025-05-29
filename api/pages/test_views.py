@@ -129,8 +129,9 @@ def convert_to_pdf_linux(input_path, output_path):
             print(f"Output: {result.get('stdout')}")
             print(f"Error: {result.get('stderr')}")
             
-        input_dir = os.path.dirname(input_path)
-        output_dir = os.path.dirname(output_path)
+        # Ensure absolute paths
+        input_abs_path = os.path.abspath(input_path)
+        output_dir = os.path.dirname(os.path.abspath(output_path))
         
         print(f"Linux conversion paths:")
         print(f"Input path: {input_path}")
@@ -141,35 +142,16 @@ def convert_to_pdf_linux(input_path, output_path):
         # Ensure directories exist
         os.makedirs(output_dir, exist_ok=True)
         
-        # Try to find LibreOffice executable
-        libreoffice_paths = [
-            'soffice',
-            '/usr/bin/soffice',
-            '/usr/lib/libreoffice/program/soffice',
-            '/opt/libreoffice/program/soffice'
-        ]
-        
-        soffice_path = None
-        for path in libreoffice_paths:
-            if os.path.exists(path) or subprocess.run(['which', path], capture_output=True).returncode == 0:
-                soffice_path = path
-                break
-                
-        if not soffice_path:
-            print("LibreOffice not found in common locations")
-            return False
-            
-        print(f"Using LibreOffice from: {soffice_path}")
-        
-        # Convert using LibreOffice
+        # Create command with explicit paths
         cmd = [
-            soffice_path,
+            'libreoffice',
             '--headless',
             '--convert-to', 'pdf',
             '--outdir', output_dir,
-            input_path
+            input_abs_path
         ]
         
+        print(f"Executing command: {' '.join(cmd)}")
         process = subprocess.run(cmd, capture_output=True, text=True)
         print(f"LibreOffice output: {process.stdout}")
         print(f"LibreOffice errors: {process.stderr}")
@@ -232,10 +214,12 @@ def doc_to_text(docx_path):
         return text
     except Exception as e:
         error_msg = str(e)
-        return ApiResponse.error(
-            message="Document processing failed",
-            errors=error_msg
-        ).to_dict()
+        return {
+            "status": "error",
+            "message": "Document processing failed",
+            "data": None,
+            "errors": error_msg
+        }
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
