@@ -18,6 +18,7 @@ from docx2pdf import convert
 import pytesseract
 from PIL import Image
 import io
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -334,6 +335,12 @@ def parse_resume_with_gemini(resume_text):
     # - For any date fields, if the date does not exist in the resume, use "0000-00-00 00:00:00" as the value.
     # - For DatesOfEmployment in WorkExperience, parse StartDate and EndDate as objects with "Day", "Month", and "Year" keys. If only month and year are available, leave "Day" as empty string.
 
+    # Ensure log directory exists
+    log_dir = PROJECT_ROOT / "media" / "log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / f"gemini_prompt_{datetime.now().strftime('%Y-%m-%d')}.log"
+
+    # Prepare the prompt
     messages = f"""
         You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
         For all dates, use the format dd/mm/yyyy (e.g., 25/12/2023). if not exist make empty string.
@@ -347,6 +354,12 @@ def parse_resume_with_gemini(resume_text):
 
         {json_template}
         """
+
+    # Log the prompt to the log file
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(f"\n--- {datetime.now().isoformat()} ---\n")
+        f.write(messages)
+        f.write("\n--- END ---\n")
 
     try:
         model = genai.GenerativeModel("gemini-2.0-flash")
