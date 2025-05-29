@@ -135,11 +135,11 @@ def doc_to_text(docx_path):
         
         # Cleanup both temporary PDF and original DOC/DOCX
         if os.path.exists(pdf_path):
-            os.remove(pdf_path)
+            #os.remove(pdf_path)
             print(f"Deleted temporary PDF: {pdf_path}")
             
         if os.path.exists(abs_path):
-            os.remove(abs_path)
+            #os.remove(abs_path)
             print(f"Deleted original document: {abs_path}")
             
         return text
