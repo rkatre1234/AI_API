@@ -202,7 +202,14 @@ class FileUploadView(APIView):
                     if ext == ".pdf":
                         resume_text = pdf_to_text(file_serializer.data['file'])
                     elif ext in (".doc", ".docx"):
-                        resume_text = doc_to_text(file_serializer.data['file'])
+                        result = doc_to_text(file_serializer.data['file'])
+                        # Check if result is an error dictionary
+                        if isinstance(result, dict) and result.get('status') == 'error':
+                            return ApiResponse.error(
+                                message=result.get('message', 'Error processing file'),
+                                errors=result.get('details', 'Unknown error')
+                            )
+                        resume_text = result
                     else:
                         resume_text = "File not supported"
                 except Exception as e:
