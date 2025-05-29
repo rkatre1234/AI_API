@@ -92,18 +92,102 @@ def pdf_to_text(pdf_path):
     
     return "\n".join(text)
 
+def check_libreoffice_installation():
+    """Check LibreOffice installation details on Linux"""
+    checks = [
+        "which soffice",
+        "whereis soffice",
+        "soffice --version",
+        "ls -l /usr/bin/soffice",
+        "ls -l /usr/lib/libreoffice",
+        "ls -l /opt/libreoffice"
+    ]
+    
+    results = {}
+    for cmd in checks:
+        try:
+            output = subprocess.run(cmd.split(), capture_output=True, text=True)
+            results[cmd] = {
+                'returncode': output.returncode,
+                'stdout': output.stdout.strip(),
+                'stderr': output.stderr.strip()
+            }
+        except Exception as e:
+            results[cmd] = {'error': str(e)}
+    
+    return results
+
 def convert_to_pdf_linux(input_path, output_path):
     """Convert document to PDF using LibreOffice on Linux"""
     try:
+        # Add installation check
+        install_info = check_libreoffice_installation()
+        print("LibreOffice Installation Check:")
+        for cmd, result in install_info.items():
+            print(f"\n{cmd}:")
+            print(f"Return Code: {result.get('returncode')}")
+            print(f"Output: {result.get('stdout')}")
+            print(f"Error: {result.get('stderr')}")
+            
+        input_dir = os.path.dirname(input_path)
+        output_dir = os.path.dirname(output_path)
+        
+        print(f"Linux conversion paths:")
+        print(f"Input path: {input_path}")
+        print(f"Input directory: {input_dir}")
+        print(f"Output path: {output_path}")
+        print(f"Output directory: {output_dir}")
+        
+        # Ensure directories exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Try to find LibreOffice executable
+        libreoffice_paths = [
+            'soffice',
+            '/usr/bin/soffice',
+            '/usr/lib/libreoffice/program/soffice',
+            '/opt/libreoffice/program/soffice'
+        ]
+        
+        soffice_path = None
+        for path in libreoffice_paths:
+            if os.path.exists(path) or subprocess.run(['which', path], capture_output=True).returncode == 0:
+                soffice_path = path
+                break
+                
+        if not soffice_path:
+            print("LibreOffice not found in common locations")
+            return False
+            
+        print(f"Using LibreOffice from: {soffice_path}")
+        
         # Convert using LibreOffice
-        cmd = ['soffice', '--headless', '--convert-to', 'pdf', '--outdir', 
-               os.path.dirname(output_path), input_path]
+        cmd = [
+            soffice_path,
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', output_dir,
+            input_path
+        ]
+        
         process = subprocess.run(cmd, capture_output=True, text=True)
+        print(f"LibreOffice output: {process.stdout}")
+        print(f"LibreOffice errors: {process.stderr}")
         
         if process.returncode != 0:
-            raise Exception(f"LibreOffice conversion failed: {process.stderr}")
+            raise Exception(f"LibreOffice conversion failed with code {process.returncode}: {process.stderr}")
+        
+        # Verify output file exists    
+        if not os.path.exists(output_path):
+            print(f"Output file not found at: {output_path}")
+            # Check if file was created with different name
+            pdf_files = [f for f in os.listdir(output_dir) if f.endswith('.pdf')]
+            print(f"PDF files in output directory: {pdf_files}")
+            return False
             
+        print("PDF conversion completed successfully")
         return True
+        
     except Exception as e:
         print(f"LibreOffice conversion error: {str(e)}")
         return False
@@ -124,7 +208,10 @@ def doc_to_text(docx_path):
                 convert(abs_path, pdf_path)
             else:
                 if not convert_to_pdf_linux(abs_path, pdf_path):
-                    raise Exception("PDF conversion failed on Linux")
+                    return ApiResponse.error(
+                        message="Document conversion failed",
+                        errors="LibreOffice conversion failed on Linux system"
+                    ).to_dict()
                 
             print("Conversion completed successfully")
         else:
@@ -145,46 +232,10 @@ def doc_to_text(docx_path):
         return text
     except Exception as e:
         error_msg = str(e)
-        if "not implemented for linux" in error_msg.lower():
-            return {
-                "status": "error",
-                "code": "CONVERSION_NOT_AVAILABLE",
-                "message": "Document conversion not available",
-                "details": "LibreOffice is required on Linux systems",
-                "path": abs_path
-            }
-        elif "file not found" in error_msg.lower():
-            return {
-                "status": "error",
-                "code": "FILE_NOT_FOUND",
-                "message": "Document not found",
-                "details": f"File not found at path: {abs_path}",
-                "path": abs_path
-            }
-        elif "permission denied" in error_msg.lower():
-            return {
-                "status": "error",
-                "code": "PERMISSION_DENIED",
-                "message": "Permission denied",
-                "details": "Unable to access document due to permission restrictions",
-                "path": abs_path
-            }
-        elif "memory" in error_msg.lower():
-            return {
-                "status": "error",
-                "code": "OUT_OF_MEMORY",
-                "message": "System out of memory",
-                "details": "Insufficient memory to process document",
-                "path": abs_path
-            }
-        else:
-            return {
-                "status": "error",
-                "code": "PROCESSING_ERROR",
-                "message": "Document processing failed",
-                "details": error_msg,
-                "path": abs_path
-            }
+        return ApiResponse.error(
+            message="Document processing failed",
+            errors=error_msg
+        ).to_dict()
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -203,12 +254,8 @@ class FileUploadView(APIView):
                         resume_text = pdf_to_text(file_serializer.data['file'])
                     elif ext in (".doc", ".docx"):
                         result = doc_to_text(file_serializer.data['file'])
-                        # Check if result is an error dictionary
-                        if isinstance(result, dict) and result.get('status') == 'error':
-                            return ApiResponse.error(
-                                message=result.get('message', 'Error processing file'),
-                                errors=result.get('details', 'Unknown error')
-                            )
+                        if isinstance(result, dict) and 'status' in result:
+                            return Response(result, status=status.HTTP_400_BAD_REQUEST)
                         resume_text = result
                     else:
                         resume_text = "File not supported"
