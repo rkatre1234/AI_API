@@ -19,6 +19,8 @@ import pytesseract
 from PIL import Image
 import io
 from datetime import datetime
+import platform
+import subprocess
 
 # Load environment variables
 load_dotenv()
@@ -90,6 +92,22 @@ def pdf_to_text(pdf_path):
     
     return "\n".join(text)
 
+def convert_to_pdf_linux(input_path, output_path):
+    """Convert document to PDF using LibreOffice on Linux"""
+    try:
+        # Convert using LibreOffice
+        cmd = ['soffice', '--headless', '--convert-to', 'pdf', '--outdir', 
+               os.path.dirname(output_path), input_path]
+        process = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if process.returncode != 0:
+            raise Exception(f"LibreOffice conversion failed: {process.stderr}")
+            
+        return True
+    except Exception as e:
+        print(f"LibreOffice conversion error: {str(e)}")
+        return False
+
 def doc_to_text(docx_path):
     # Get absolute paths
     abs_path = get_absolute_path(docx_path)
@@ -99,8 +117,16 @@ def doc_to_text(docx_path):
     try:
         # Convert DOC/DOCX to PDF
         if file_ext in ['.doc', '.docx']:
-            convert(abs_path, pdf_path)
-            print(f"Converting {file_ext} to PDF: {pdf_path}")
+            print(f"Starting conversion of {file_ext} to PDF...")
+            
+            # Use appropriate converter based on OS
+            if platform.system() == 'Windows':
+                convert(abs_path, pdf_path)
+            else:
+                if not convert_to_pdf_linux(abs_path, pdf_path):
+                    raise Exception("PDF conversion failed on Linux")
+                
+            print("Conversion completed successfully")
         else:
             raise ValueError(f"Unsupported file extension: {file_ext}")
         
