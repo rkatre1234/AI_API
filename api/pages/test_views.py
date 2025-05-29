@@ -212,6 +212,7 @@ def parse_resume_with_gemini(resume_text):
         "number": ""
     },
     "EmailAddress": "",
+    "DOB": "",
     "PreferredJobLocation": {
         "City": "",
         "State": "",
@@ -251,8 +252,16 @@ def parse_resume_with_gemini(resume_text):
             "Company": "",
             "Location": "",
             "DatesOfEmployment": {
-                "StartDate": "dd/mm/yyyy",
-                "EndDate": "dd/mm/yyyy"
+                "StartDate": {
+                    "Day": "",
+                    "Month": "",
+                    "Year": ""
+                },
+                "EndDate": {
+                    "Day": "",
+                    "Month": "",
+                    "Year": ""
+                }
             },
             "Responsibilities": [],
             "Description": [],
@@ -300,7 +309,7 @@ def parse_resume_with_gemini(resume_text):
         "TwitterURL": "",
         "FacebookURL": "",
         "InstagramURL": "",
-        "DOB": "dd/mm/yyyy",
+        "DOB": "",
         "Gender": "",
         "PinCodeOrZipCode": "",
         "Address": "",
@@ -320,14 +329,21 @@ def parse_resume_with_gemini(resume_text):
     "RecommendedJobRoles": []
 }'''
 
+    # Add instructions for DOB and date fields
+    # - If DOB is not available in the resume, do not include the "DOB" key at all in the output.
+    # - For any date fields, if the date does not exist in the resume, use "0000-00-00 00:00:00" as the value.
+    # - For DatesOfEmployment in WorkExperience, parse StartDate and EndDate as objects with "Day", "Month", and "Year" keys. If only month and year are available, leave "Day" as empty string.
+
     messages = f"""
-        You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format. 
-        For all dates, use the format dd/mm/yyyy (e.g., 25/12/2023).
+        You are a resume parsing assistant. Given the following resume text, extract all the important details and return them in a well-structured JSON format.
+        For all dates, use the format dd/mm/yyyy (e.g., 25/12/2023). if not exist make empty string.
+        For the "DOB" (Date of Birth) field, if it is not available in the resume, "DOB" key should be empty string in the output JSON.
+        For DatesOfEmployment in WorkExperience, parse StartDate and EndDate as objects with "Day", "Month", and "Year" keys. If only month and year are available, leave "Day" as empty string.
 
         The resume text:
         {resume_text}
 
-        Extract and include the following (if data is missing, mark it as " "):
+        Extract and include the following (if data is missing, mark it as " "), except for DOB as described above:
 
         {json_template}
         """
