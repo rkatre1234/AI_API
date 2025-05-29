@@ -120,16 +120,26 @@ def check_libreoffice_installation():
 def convert_to_pdf_linux(input_path, output_path):
     """Convert document to PDF using LibreOffice on Linux"""
     try:
-        # Create simple command with verified format
+        # Ensure we're working with clean absolute paths
+        base_dir = "/home/ec2-user/AI_API"
+        input_path = input_path.replace(base_dir, "").lstrip("/")
+        input_abs_path = os.path.join(base_dir, input_path)
+        output_dir = os.path.join(base_dir, "media/uploads")
+        
+        # Create command with correct paths
         cmd = [
             'libreoffice',
             '--headless',
             '--convert-to', 'pdf',
-            '--outdir', os.path.dirname(output_path),
-            input_path
+            '--outdir', output_dir,
+            input_abs_path
         ]
         
+        print(f"Debug paths:")
+        print(f"Input path: {input_abs_path}")
+        print(f"Output dir: {output_dir}")
         print(f"Executing command: {' '.join(cmd)}")
+        
         process = subprocess.run(cmd, capture_output=True, text=True)
         print(f"Command output: {process.stdout}")
         print(f"Command errors: {process.stderr}")
