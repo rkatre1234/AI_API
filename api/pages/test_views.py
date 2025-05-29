@@ -120,51 +120,27 @@ def check_libreoffice_installation():
 def convert_to_pdf_linux(input_path, output_path):
     """Convert document to PDF using LibreOffice on Linux"""
     try:
-        # Add installation check
-        install_info = check_libreoffice_installation()
-        print("LibreOffice Installation Check:")
-        for cmd, result in install_info.items():
-            print(f"\n{cmd}:")
-            print(f"Return Code: {result.get('returncode')}")
-            print(f"Output: {result.get('stdout')}")
-            print(f"Error: {result.get('stderr')}")
-            
-        # Ensure absolute paths
-        input_abs_path = os.path.abspath(input_path)
-        output_dir = os.path.dirname(os.path.abspath(output_path))
-        
-        print(f"Linux conversion paths:")
-        print(f"Input path: {input_path}")
-        print(f"Input directory: {input_dir}")
-        print(f"Output path: {output_path}")
-        print(f"Output directory: {output_dir}")
-        
-        # Ensure directories exist
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Create command with explicit paths
+        # Create simple command with verified format
         cmd = [
             'libreoffice',
             '--headless',
             '--convert-to', 'pdf',
-            '--outdir', output_dir,
-            input_abs_path
+            '--outdir', os.path.dirname(output_path),
+            input_path
         ]
         
         print(f"Executing command: {' '.join(cmd)}")
         process = subprocess.run(cmd, capture_output=True, text=True)
-        print(f"LibreOffice output: {process.stdout}")
-        print(f"LibreOffice errors: {process.stderr}")
+        print(f"Command output: {process.stdout}")
+        print(f"Command errors: {process.stderr}")
         
         if process.returncode != 0:
-            raise Exception(f"LibreOffice conversion failed with code {process.returncode}: {process.stderr}")
-        
+            print(f"Conversion failed with return code: {process.returncode}")
+            return False
+            
         # Verify output file exists    
         if not os.path.exists(output_path):
-            print(f"Output file not found at: {output_path}")
-            # Check if file was created with different name
-            pdf_files = [f for f in os.listdir(output_dir) if f.endswith('.pdf')]
-            print(f"PDF files in output directory: {pdf_files}")
+            print(f"Output PDF not found at: {output_path}")
             return False
             
         print("PDF conversion completed successfully")
