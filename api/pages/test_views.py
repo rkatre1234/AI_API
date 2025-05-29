@@ -151,7 +151,7 @@ def doc_to_text(docx_path):
             text = "\n".join([para.text for para in doc.paragraphs])
             # Clean up original file after extraction
             if os.path.exists(abs_path):
-                os.remove(abs_path)
+                #os.remove(abs_path)
                 print(f"Deleted original document: {abs_path}")
             return text
         except Exception as doc_error:
