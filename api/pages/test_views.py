@@ -14,6 +14,10 @@ from docx import Document
 import boto3
 import fitz
 import gdown
+from docx2pdf import convert
+import pytesseract
+from PIL import Image
+import io
 
 # Load environment variables
 load_dotenv()
@@ -56,13 +60,76 @@ def check_file_type(file_path):
 
 def pdf_to_text(pdf_path):
     doc = fitz.open(get_absolute_path(pdf_path))
-    text = "\n".join(page.get_text() for page in doc)
-    return text
+    text = []
+    
+    for page in doc:
+        # Get text from regular text content
+        text.append(page.get_text())
+        
+        # Extract text from images
+        images = page.get_images()
+        for img_index, img in enumerate(images):
+            try:
+                # Get image data
+                xref = img[0]
+                base_image = doc.extract_image(xref)
+                image_bytes = base_image["image"]
+                
+                # Convert to PIL Image
+                image = Image.open(io.BytesIO(image_bytes))
+                
+                # Use OCR to extract text from image
+                img_text = pytesseract.image_to_string(image)
+                if img_text.strip():  # Only add if text was found
+                    text.append(img_text)
+                    
+            except Exception as e:
+                print(f"Error processing image {img_index}: {str(e)}")
+                continue
+    
+    return "\n".join(text)
+
 def doc_to_text(docx_path):
-    doc = Document(get_absolute_path(docx_path))
-    text = "\n".join([para.text for para in doc.paragraphs])
-    print(text)
-    return text
+    # Get absolute paths
+    abs_path = get_absolute_path(docx_path)
+    file_ext = Path(abs_path).suffix.lower()
+    pdf_path = abs_path.rsplit('.', 1)[0] + '.pdf'
+    
+    try:
+        # Convert DOC/DOCX to PDF
+        if file_ext in ['.doc', '.docx']:
+            convert(abs_path, pdf_path)
+            print(f"Converting {file_ext} to PDF: {pdf_path}")
+        else:
+            raise ValueError(f"Unsupported file extension: {file_ext}")
+        
+        # Use existing pdf_to_text function to extract text
+        text = pdf_to_text(pdf_path)
+        
+        # Cleanup both temporary PDF and original DOC/DOCX
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            print(f"Deleted temporary PDF: {pdf_path}")
+            
+        if os.path.exists(abs_path):
+            os.remove(abs_path)
+            print(f"Deleted original document: {abs_path}")
+            
+        return text
+    except Exception as e:
+        print(f"Error converting document: {str(e)}")
+        # Fallback to direct DOCX extraction if conversion fails
+        try:
+            doc = Document(abs_path)
+            text = "\n".join([para.text for para in doc.paragraphs])
+            # Clean up original file after extraction
+            if os.path.exists(abs_path):
+                os.remove(abs_path)
+                print(f"Deleted original document: {abs_path}")
+            return text
+        except Exception as doc_error:
+            print(f"Error in fallback extraction: {str(doc_error)}")
+            raise
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -76,12 +143,15 @@ class FileUploadView(APIView):
             if request.data.get('upload_type') == 'resume':
                 ext = check_file_type(file_serializer.data['file'])
 
-                if ext == ".pdf":
-                    resume_text = pdf_to_text(file_serializer.data['file'])
-                elif ext == ".doc" or ext == ".docx":
-                    resume_text = doc_to_text(file_serializer.data['file'])
-                else:
-                    resume_text = "File not supported"
+                try:
+                    if ext == ".pdf":
+                        resume_text = pdf_to_text(file_serializer.data['file'])
+                    elif ext in (".doc", ".docx"):
+                        resume_text = doc_to_text(file_serializer.data['file'])
+                    else:
+                        resume_text = "File not supported"
+                except Exception as e:
+                    return ApiResponse.error(message="Error processing file", errors=str(e))
                 
                 if resume_text == "File not supported":
                     return ApiResponse.error(message="File not supported", errors="File not supported")
