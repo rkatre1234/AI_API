@@ -326,14 +326,14 @@ def parse_resume_with_gemini(resume_text):
             "Location": "",
             "DatesOfEmployment": {
                 "StartDate": {
-                    "Day": "",
-                    "Month": "",
-                    "Year": ""
+                    "Day": "00",
+                    "Month": "00",
+                    "Year": "0000"
                 },
                 "EndDate": {
-                    "Day": "",
-                    "Month": "",
-                    "Year": ""
+                    "Day": "00",
+                    "Month": "00",
+                    "Year": "0000"
                 }
             },
             "Responsibilities": [],
