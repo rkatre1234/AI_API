@@ -135,28 +135,56 @@ def doc_to_text(docx_path):
         
         # Cleanup both temporary PDF and original DOC/DOCX
         if os.path.exists(pdf_path):
-            #os.remove(pdf_path)
+            os.remove(pdf_path)
             print(f"Deleted temporary PDF: {pdf_path}")
             
         if os.path.exists(abs_path):
-            #os.remove(abs_path)
+            os.remove(abs_path)
             print(f"Deleted original document: {abs_path}")
             
         return text
     except Exception as e:
-        print(f"Error converting document: {str(e)}")
-        # Fallback to direct DOCX extraction if conversion fails
-        try:
-            doc = Document(abs_path)
-            text = "\n".join([para.text for para in doc.paragraphs])
-            # Clean up original file after extraction
-            if os.path.exists(abs_path):
-                #os.remove(abs_path)
-                print(f"Deleted original document: {abs_path}")
-            return text
-        except Exception as doc_error:
-            print(f"Error in fallback extraction: {str(doc_error)}")
-            raise
+        error_msg = str(e)
+        if "not implemented for linux" in error_msg.lower():
+            return {
+                "status": "error",
+                "code": "CONVERSION_NOT_AVAILABLE",
+                "message": "Document conversion not available",
+                "details": "LibreOffice is required on Linux systems",
+                "path": abs_path
+            }
+        elif "file not found" in error_msg.lower():
+            return {
+                "status": "error",
+                "code": "FILE_NOT_FOUND",
+                "message": "Document not found",
+                "details": f"File not found at path: {abs_path}",
+                "path": abs_path
+            }
+        elif "permission denied" in error_msg.lower():
+            return {
+                "status": "error",
+                "code": "PERMISSION_DENIED",
+                "message": "Permission denied",
+                "details": "Unable to access document due to permission restrictions",
+                "path": abs_path
+            }
+        elif "memory" in error_msg.lower():
+            return {
+                "status": "error",
+                "code": "OUT_OF_MEMORY",
+                "message": "System out of memory",
+                "details": "Insufficient memory to process document",
+                "path": abs_path
+            }
+        else:
+            return {
+                "status": "error",
+                "code": "PROCESSING_ERROR",
+                "message": "Document processing failed",
+                "details": error_msg,
+                "path": abs_path
+            }
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
