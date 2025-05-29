@@ -35,21 +35,12 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 def get_absolute_path(uploaded_relative_path):
     """
-    Converts a Linux-style uploaded path to a Windows-compatible absolute path.
-    Does NOT use .env.
+    Converts a Linux-style uploaded path to absolute path.
     """
-    # Get the project's root dynamically (assumes script is run from the project folder)
-    PROJECT_ROOT = Path.cwd()  # Uses current working directory
-
-    # Normalize the path for the current OS
-    absolute_path = (PROJECT_ROOT / Path(uploaded_relative_path.lstrip("/"))).resolve()
-
-    # Debugging: Print paths
-    print(f"PROJECT_ROOT: {PROJECT_ROOT}")
-    print(f"Original Uploaded Path: {uploaded_relative_path}")
-    print(f"Resolved Absolute Path: {absolute_path}")
-
-    return str(absolute_path)
+    base_dir = "/home/ec2-user/AI_API"
+    # Remove any duplicate base paths
+    clean_path = uploaded_relative_path.replace(base_dir, "").lstrip("/")
+    return os.path.join(base_dir, clean_path)
 
 def check_file_type(file_path):
     ext = Path(file_path).suffix.lower().strip()  # Normalize case & remove spaces
@@ -120,24 +111,26 @@ def check_libreoffice_installation():
 def convert_to_pdf_linux(input_path, output_path):
     """Convert document to PDF using LibreOffice on Linux"""
     try:
-        # Ensure we're working with clean absolute paths
+        # Clean and normalize paths
         base_dir = "/home/ec2-user/AI_API"
-        input_path = input_path.replace(base_dir, "").lstrip("/")
-        input_abs_path = os.path.join(base_dir, input_path)
-        output_dir = os.path.join(base_dir, "media/uploads")
+        uploads_dir = os.path.join(base_dir, "media/uploads")
         
-        # Create command with correct paths
+        # Get clean input filename
+        input_filename = os.path.basename(input_path)
+        clean_input_path = os.path.join(uploads_dir, input_filename)
+        
+        print(f"Debug paths:")
+        print(f"Clean input path: {clean_input_path}")
+        print(f"Output dir: {uploads_dir}")
+        
         cmd = [
             'libreoffice',
             '--headless',
             '--convert-to', 'pdf',
-            '--outdir', output_dir,
-            input_abs_path
+            '--outdir', uploads_dir,
+            clean_input_path
         ]
         
-        print(f"Debug paths:")
-        print(f"Input path: {input_abs_path}")
-        print(f"Output dir: {output_dir}")
         print(f"Executing command: {' '.join(cmd)}")
         
         process = subprocess.run(cmd, capture_output=True, text=True)
@@ -161,10 +154,11 @@ def convert_to_pdf_linux(input_path, output_path):
         return False
 
 def doc_to_text(docx_path):
-    # Get absolute paths
+    # Get absolute paths with fixed base dir
     abs_path = get_absolute_path(docx_path)
     file_ext = Path(abs_path).suffix.lower()
-    pdf_path = abs_path.rsplit('.', 1)[0] + '.pdf'
+    output_filename = os.path.basename(abs_path).rsplit('.', 1)[0] + '.pdf'
+    pdf_path = os.path.join(os.path.dirname(abs_path), output_filename)
     
     try:
         # Convert DOC/DOCX to PDF
