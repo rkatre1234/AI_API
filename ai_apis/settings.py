@@ -137,3 +137,14 @@ REST_FRAMEWORK = {
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# GRPC Settings
+GRPC_SETTINGS = {
+    'timeout': int(os.getenv('GRPC_TIMEOUT', 60)),
+    'options': [
+        ('grpc.max_receive_message_length', 100 * 1024 * 1024),  # 100MB
+        ('grpc.max_send_message_length', 100 * 1024 * 1024),  # 100MB
+        ('grpc.keepalive_time_ms', 30000),  # 30 seconds
+        ('grpc.keepalive_timeout_ms', 10000),  # 10 seconds
+    ]
+}

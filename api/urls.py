@@ -2,6 +2,7 @@ from django.urls import path
 from .views import ProductListCreateView, ProductDetailView
 from .views import ResumeParserView
 from api.pages.test_views import TestView, GeminiView, FileUploadView, GoogleDriveToS3View
+from api.pages.test_views import ResumeMatchingView
 from rest_framework.routers import DefaultRouter
 
 
@@ -14,5 +15,6 @@ urlpatterns = [
     path('gemini-parse-resume/', GeminiView.as_view(), name='gemini-parse-resume'),
     path('upload/', FileUploadView.as_view(), name='file-upload'),
     path('google-drive-to-s3/', GoogleDriveToS3View.as_view(), name='google_drive_to_s3'),
+    path('resume-matching/', ResumeMatchingView.as_view(), name='resume-matching'),
 ]
 

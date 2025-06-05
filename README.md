@@ -43,7 +43,7 @@ Follow the prompts to set up an admin account.
 
 ### 7. Run the Development Server
 ```sh
-python manage.py runserver
+python manage.py runserver 0.0.0.0:8000
 ```
 Access the project at `http://3.93.231.224:8000/`
 
@@ -68,3 +68,44 @@ For production, consider using:
 ## License
 This project is licensed under the MIT License.
 
+ps aux | grep '[p]ython'
+
+ps aux | grep '[m]anage.py'
+
+
+ /home/ec2-user/AI_API/venv/bin/python manage.py runserver 0.0.0.0:8080
+
+
+nohup /home/ec2-user/AI_API/venv/bin/python manage.py runserver 0.0.0.0:8080 > server.log 2>&1 &
+
+
+## Elasticsearch & Kibana Setup
+
+1. First start Elasticsearch:
+```sh
+docker-compose up elasticsearch -d
+```
+
+2. Create service account token for Kibana:
+```sh
+# Connect to Elasticsearch container
+docker exec -it ai_apis-elasticsearch-1 bash
+
+# Create service account token
+bin/elasticsearch-service-tokens create elastic/kibana kibana-token
+```
+
+3. Copy the generated token and update the `ELASTICSEARCH_SERVICEACCOUNTTOKEN` in docker-compose.yml
+
+4. Start Kibana:
+```sh
+docker-compose up kibana -d
+```
+
+Access Elasticsearch: http://localhost:9200
+Access Kibana: http://localhost:5601
+
+#rkatre@tiuconsulting.com
+#GEMINI_API_KEY=AIzaSyDxCVOp5DqeVXlReNTKKsP0B8jtkhhN8AU
+#php.sr.programmer@gmail.com
+#GEMINI_API_KEY=AIzaSyAtDZqQBbytta8uqyMLUWDmAY5Z0AIKX3M
