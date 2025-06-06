@@ -79,8 +79,21 @@ ps aux | grep '[m]anage.py'
 nohup /home/ec2-user/AI_API/venv/bin/python manage.py runserver 0.0.0.0:8080 > server.log 2>&1 &
 
 
-## Elasticsearch & Kibana Setup
+## Elasticsearch Setup
 
+### Windows Installation
+1. Download Elasticsearch from https://www.elastic.co/downloads/elasticsearch
+2. Extract the zip file to a location (e.g., C:\elasticsearch)
+3. Open PowerShell and navigate to the Elasticsearch directory:
+```sh
+cd C:\elasticsearch\elasticsearch-<version>
+```
+4. Start Elasticsearch:
+```sh
+.\bin\elasticsearch.bat
+```
+
+### Docker Installation (Alternative)
 1. First start Elasticsearch:
 ```sh
 docker-compose up elasticsearch -d
@@ -104,6 +117,33 @@ docker-compose up kibana -d
 
 Access Elasticsearch: http://localhost:9200
 Access Kibana: http://localhost:5601
+
+### Troubleshooting
+If you encounter connection errors (e.g., "Connection refused" on port 9200):
+
+1. Verify Elasticsearch is running:
+   ```sh
+   curl http://localhost:9200
+   ```
+
+2. Check Windows Services:
+   - Open Services (services.msc)
+   - Look for "Elasticsearch" service
+   - Ensure it's running and set to "Automatic"
+
+3. Common Solutions:
+   - Ensure port 9200 is not blocked by firewall
+   - Wait 30-60 seconds after starting for service to be ready
+   - Check elasticsearch.yml for correct host binding
+   - Verify Java is installed and JAVA_HOME is set
+
+4. Development Quick Fix:
+   ```sh
+   # Kill any existing Elasticsearch processes
+   taskkill /F /IM elasticsearch.bat
+   # Start fresh instance
+   .\bin\elasticsearch.bat
+   ```
 
 #rkatre@tiuconsulting.com
 #GEMINI_API_KEY=AIzaSyDxCVOp5DqeVXlReNTKKsP0B8jtkhhN8AU

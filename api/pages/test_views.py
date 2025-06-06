@@ -26,6 +26,8 @@ from elasticsearch import Elasticsearch, ConnectionError, ConnectionTimeout
 import pythoncom  # Add this import at the top
 import logging
 import grpc
+import psutil
+import win32com.client
 
 # Load environment variables
 load_dotenv()
@@ -89,6 +91,19 @@ ES_MAPPING = {
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", Path(__file__).resolve().parent.parent))
 MEDIA_DIR = PROJECT_ROOT / "media"
 UPLOADS_DIR = MEDIA_DIR / "uploads"
+
+def ensure_upload_dir():
+    """Ensure all required upload directories exist"""
+    try:
+        # Create media, uploads, and log directories if they don't exist
+        MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+        UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+        log_dir = MEDIA_DIR / "log"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to create upload directories: {str(e)}")
+        return False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -283,32 +298,86 @@ def convert_to_pdf_linux(input_path, output_path):
         logger.error(f"LibreOffice conversion error: {str(e)}")
         return False
 
-def doc_to_text(docx_path):
-    # Initialize COM for the current thread if on Windows
-    if platform.system() == 'Windows':
-        pythoncom.CoInitialize()
+def kill_word_processes():
+    """Kill any existing Word processes"""
+    print("[DEBUG DOC] Checking for existing Word processes")
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            if 'WINWORD.EXE' in proc.info['name'].upper():
+                print(f"[DEBUG DOC] Killing Word process: {proc.info['pid']}")
+                proc.kill()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+def convert_with_com(input_path, output_path):
+    """Convert using Word COM object with proper initialization"""
+    print("[DEBUG DOC] Starting COM conversion")
     
     try:
-        # Get absolute paths with fixed base dir
+        # Kill any existing Word processes
+        kill_word_processes()
+        time.sleep(2)  # Wait for processes to clean up
+        
+        # Initialize COM
+        print("[DEBUG DOC] Initializing COM")
+        pythoncom.CoInitialize()
+        
+        # Create Word application
+        print("[DEBUG DOC] Creating Word application")
+        word = win32com.client.Dispatch('Word.Application')
+        word.Visible = False
+        word.DisplayAlerts = False
+        
+        try:
+            abs_input = str(Path(input_path).resolve())
+            abs_output = str(Path(output_path).resolve())
+            print(f"[DEBUG DOC] Opening document: {abs_input}")
+            doc = word.Documents.Open(abs_input)
+            print(f"[DEBUG DOC] Saving as PDF: {abs_output}")
+            doc.SaveAs2(abs_output, FileFormat=17)  # wdFormatPDF = 17
+            doc.Close(SaveChanges=False)
+            print("[DEBUG DOC] Conversion successful")
+            return True
+        except Exception as e:
+            print(f"[DEBUG DOC] Document handling error: {str(e)}")
+            raise
+        finally:
+            try:
+                word.Quit()
+            except:
+                pass
+            del word
+            # Kill any remaining Word processes
+            kill_word_processes()
+    except Exception as e:
+        print(f"[DEBUG DOC] COM error: {str(e)}")
+        return False
+    finally:
+        pythoncom.CoUninitialize()
+        print("[DEBUG DOC] COM cleanup complete")
+
+def doc_to_text(docx_path):
+    print("[DEBUG DOC] Starting doc_to_text conversion")
+    print(f"[DEBUG DOC] Input docx_path: {docx_path}")
+    
+    try:
         abs_path = get_absolute_path(docx_path)
+        print(f"[DEBUG DOC] Absolute path: {abs_path}")
+        
         file_ext = Path(abs_path).suffix.lower()
+        print(f"[DEBUG DOC] File extension: {file_ext}")
+        
         output_filename = os.path.basename(abs_path).rsplit('.', 1)[0] + '.pdf'
         pdf_path = os.path.join(os.path.dirname(abs_path), output_filename)
+        print(f"[DEBUG DOC] Output PDF path: {pdf_path}")
         
-        # Convert DOC/DOCX to PDF
         if file_ext in ['.doc', '.docx']:
-            logger.info(f"Starting conversion of {file_ext} to PDF...")
+            print(f"[DEBUG DOC] Starting conversion of {file_ext} to PDF...")
             
-            # Use appropriate converter based on OS
             if platform.system() == 'Windows':
-                try:
-                    convert(abs_path, pdf_path)
-                except Exception as e:
-                    logger.error(f"Windows conversion error: {str(e)}")
-                    return ApiResponse.error(
-                        message="Document conversion failed",
-                        errors=f"Windows conversion error: {str(e)}"
-                    ).to_dict()
+                print("[DEBUG DOC] Using Windows conversion method")
+                if not convert_with_com(abs_path, pdf_path):
+                    raise Exception("Windows COM conversion failed")
             else:
                 if not convert_to_pdf_linux(abs_path, pdf_path):
                     return ApiResponse.error(
@@ -316,24 +385,30 @@ def doc_to_text(docx_path):
                         errors="LibreOffice conversion failed on Linux system"
                     ).to_dict()
             
-            logger.info("Conversion completed successfully")
+            # Verify PDF exists and extract text
+            if not os.path.exists(pdf_path):
+                raise FileNotFoundError(f"PDF was not created at: {pdf_path}")
+                
+            text = pdf_to_text(pdf_path)
+            
+            # Cleanup
+            try:
+                if os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+                    print(f"[DEBUG DOC] Deleted temporary PDF: {pdf_path}")
+                if os.path.exists(abs_path):
+                    os.remove(abs_path)
+                    print(f"[DEBUG DOC] Deleted original document: {abs_path}")
+            except Exception as cleanup_error:
+                print(f"[DEBUG DOC] Cleanup error: {str(cleanup_error)}")
+            
+            return text
+            
         else:
             raise ValueError(f"Unsupported file extension: {file_ext}")
-        
-        # Use existing pdf_to_text function to extract text
-        text = pdf_to_text(pdf_path)
-        
-        # Cleanup both temporary PDF and original DOC/DOCX
-        if os.path.exists(pdf_path):
-            os.remove(pdf_path)
-            logger.info(f"Deleted temporary PDF: {pdf_path}")
             
-        if os.path.exists(abs_path):
-            os.remove(abs_path)
-            logger.info(f"Deleted original document: {abs_path}")
-            
-        return text
     except Exception as e:
+        print(f"[DEBUG DOC] Error in doc_to_text: {str(e)}")
         error_msg = str(e)
         return {
             "status": "error",
@@ -341,52 +416,73 @@ def doc_to_text(docx_path):
             "data": None,
             "errors": error_msg
         }
-    finally:
-        # Uninitialize COM if on Windows
-        if platform.system() == 'Windows':
-            pythoncom.CoUninitialize()
 
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
-        file_serializer = FileUploadSerializer(data=request.data)
-        if file_serializer.is_valid():
-            file_serializer.save()
-            user_data = {"file_link":file_serializer.data}
+        try:
+            # Ensure upload directory exists
+            ensure_upload_dir()
+            
+            file_serializer = FileUploadSerializer(data=request.data)
+            if file_serializer.is_valid():
+                file_serializer.save()
+                user_data = {"file_link":file_serializer.data}
 
-            if request.data.get('upload_type') == 'resume':
-                ext = check_file_type(file_serializer.data['file'])
+                if request.data.get('upload_type') == 'resume':
+                    try:
+                        ext = check_file_type(file_serializer.data['file'])
 
-                try:
-                    if ext == ".pdf":
-                        resume_text = pdf_to_text(file_serializer.data['file'])
-                    elif ext in (".doc", ".docx"):
-                        result = doc_to_text(file_serializer.data['file'])
-                        if isinstance(result, dict) and 'status' in result:
-                            return Response(result, status=status.HTTP_400_BAD_REQUEST)
-                        resume_text = result
-                    else:
-                        resume_text = "File not supported"
-                except Exception as e:
-                    return ApiResponse.error(message="Error processing file", errors=str(e))
-                
-                if resume_text == "File not supported":
-                    return ApiResponse.error(message="File not supported", errors="File not supported")
-                else:   
-                    resume_data = parse_resume_with_gemini(resume_text)
-                    response = ApiResponse(message="Resume data", data=resume_data) 
+                        if ext == ".pdf":
+                            resume_text = pdf_to_text(file_serializer.data['file'])
+                        elif ext in (".doc", ".docx"):
+                            result = doc_to_text(file_serializer.data['file'])
+                            if isinstance(result, dict) and 'status' in result:
+                                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+                            resume_text = result
+                        else:
+                            resume_text = "File not supported"
+                        
+                        if resume_text == "File not supported":
+                            return ApiResponse.error(message="File not supported", errors="File not supported")
+                        else:   
+                            resume_data = parse_resume_with_gemini(resume_text)
+                            # Parse the JSON string back to an object if it's a string
+                            if isinstance(resume_data, str):
+                                try:
+                                    resume_data = json.loads(resume_data)
+                                except json.JSONDecodeError:
+                                    return ApiResponse.error(
+                                        message="Invalid JSON response",
+                                        errors="Failed to parse resume data"
+                                    )
+                            response = ApiResponse(message="Resume data", data=resume_data) 
+                            return response.to_response()
+                            
+                    except FileNotFoundError as e:
+                        return ApiResponse.error(
+                            message="File not found",
+                            errors=str(e)
+                        )
+                    except Exception as e:
+                        return ApiResponse.error(
+                            message="Error processing file",
+                            errors=str(e)
+                        )
+                else:
+                    response = ApiResponse(message="file uploaded successfully", data=user_data)           
                     return response.to_response()
-                # resume_data ={"resume_text"}
-                          
-            else:
-                response = ApiResponse(message="file uploaded successfully", data=user_data)           
-                
-            return response.to_response()
-            # return Response({"file_link":file_serializer.data, "status":"true" }, status=201)
-        #return Response(file_serializer.errors, status=400)
-        return ApiResponse.error(message="Failed to upload", errors=str(file_serializer.errors))
-        
+                    
+            return ApiResponse.error(message="Failed to upload", errors=str(file_serializer.errors))
+            
+        except Exception as e:
+            return ApiResponse.error(
+                message="Upload failed",
+                errors=str(e)
+            )
+
+# ...rest of existing code...
 
 def check_huggingface_rate_limit(api_key):
     """
@@ -409,27 +505,132 @@ def check_huggingface_rate_limit(api_key):
         return {"error": f"Failed to fetch rate limits. Status Code: {response.status_code}", "details": response.text}
 
 
-def store_parsed_resume_to_elasticsearch(parsed_resume, index_name="parsed_resumes"):
-    """
-    Stores the parsed resume data into Elasticsearch.
-    """
-    # Use global ES client
-    es = get_elasticsearch_client()
+def get_resume_by_id(es_client, doc_id, index_name="parsed_resumes"):
+    """Get resume by ID with version info"""
+    try:
+        result = es_client.get(
+            index=index_name,
+            id=doc_id,
+            _source=True
+        )
+        return result if result["found"] else None
+    except Exception as e:
+        logger.error(f"Error getting resume by ID: {str(e)}")
+        return None
 
-    # If parsed_resume is a JSON string, convert to dict
+def check_duplicate_resume(es_client, resume_data, index_name="parsed_resumes"):
+    """Check if resume already exists based on multiple criteria"""
+    if not es_client:
+        return None
+        
+    try:
+        # Build query to check for duplicates
+        query = {
+            "bool": {
+                "should": [
+                    # Exact email match
+                    {"term": {"EmailAddress.keyword": resume_data.get("EmailAddress", "")}},
+                    # Name + Phone number match
+                    {"bool": {
+                        "must": [
+                            {"term": {"FullName.FirstName.keyword": resume_data.get("FullName", {}).get("FirstName", "")}},
+                            {"term": {"FullName.LastName.keyword": resume_data.get("FullName", {}).get("LastName", "")}},
+                            {"term": {"ContactNumber.number.keyword": resume_data.get("ContactNumber", {}).get("number", "")}}
+                        ]
+                    }}
+                ],
+                "minimum_should_match": 1
+            }
+        }
+        
+        result = es_client.search(
+            index=index_name,
+            body={
+                "query": query,
+                "_source": ["_id", "EmailAddress", "FullName", "_version", "updated_at"],
+                "size": 1
+            }
+        )
+        
+        if result["hits"]["total"]["value"] > 0:
+            hit = result["hits"]["hits"][0]
+            existing_doc = get_resume_by_id(es_client, hit["_id"])
+            if existing_doc:
+                return existing_doc
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error checking duplicates: {str(e)}")
+        return None
+
+def store_parsed_resume_to_elasticsearch(parsed_resume, index_name="parsed_resumes"):
+    """Stores or updates parsed resume with version control"""
+    es = get_elasticsearch_client()
+    
     if isinstance(parsed_resume, str):
         try:
             parsed_resume = json.loads(parsed_resume)
         except Exception:
-            return {"error": "Failed to parse resume JSON for Elasticsearch"}
+            return {"error": "Failed to parse resume JSON"}
 
-    # Index the document
     try:
+        existing_doc = check_duplicate_resume(es, parsed_resume, index_name)
+        
+        if existing_doc:
+            doc_id = existing_doc["_id"]
+            
+            # Compare content to check if update is needed
+            if not needs_update(existing_doc["_source"], parsed_resume):
+                return {
+                    "result": "unchanged",
+                    "es_id": doc_id,
+                    "message": "Resume exists and no changes detected"
+                }
+            
+            # Update document with if_seq_no and if_primary_term for optimistic concurrency control
+            parsed_resume["updated_at"] = datetime.now().isoformat()
+            try:
+                resp = es.update(
+                    index=index_name,
+                    id=doc_id,
+                    body={"doc": parsed_resume},
+                    if_seq_no=existing_doc.get("_seq_no"),
+                    if_primary_term=existing_doc.get("_primary_term")
+                )
+                return {
+                    "result": "updated",
+                    "es_id": doc_id,
+                    "message": "Resume updated successfully"
+                }
+            except Exception as version_error:
+                logger.error(f"Version conflict during update: {str(version_error)}")
+                return {"error": "Version conflict", "details": "Resume was modified by another process"}
+        
+        # Index new document
+        parsed_resume.update({
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        })
         resp = es.index(index=index_name, document=parsed_resume)
-        return {"result": "success", "es_id": resp.get("_id")}
+        return {
+            "result": "created",
+            "es_id": resp.get("_id"),
+            "message": "New resume created"
+        }
+        
     except Exception as e:
         return {"error": "Failed to store in Elasticsearch", "details": str(e)}
 
+def needs_update(existing_doc, new_doc):
+    """Compare documents to determine if update is needed"""
+    # Fields to ignore in comparison
+    ignore_fields = {"created_at", "updated_at", "version", "_version"}
+    
+    # Remove ignored fields for comparison
+    existing_compare = {k: v for k, v in existing_doc.items() if k not in ignore_fields}
+    new_compare = {k: v for k, v in new_doc.items() if k not in ignore_fields}
+    
+    return existing_compare != new_compare
 
 def parse_resume_with_gemini(resume_text):
     """
