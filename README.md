@@ -145,7 +145,3 @@ If you encounter connection errors (e.g., "Connection refused" on port 9200):
    .\bin\elasticsearch.bat
    ```
 
-#rkatre@tiuconsulting.com
-#GEMINI_API_KEY=AIzaSyDxCVOp5DqeVXlReNTKKsP0B8jtkhhN8AU
-#php.sr.programmer@gmail.com
-#GEMINI_API_KEY=AIzaSyAtDZqQBbytta8uqyMLUWDmAY5Z0AIKX3M
